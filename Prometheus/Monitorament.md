@@ -94,16 +94,16 @@ O `kube-prometheus-stack` instala o Prometheus, Grafana, Alertmanager, Node Expo
 
     # Instalar Grafana (chart standalone)
     helm install grafana grafana/grafana \
-    --namespace monitoring \
-    --set persistence.enabled=true \
-    --set persistence.storageClassName=local-path \
-    --set persistence.size=1Gi \
-    --set service.type=ClusterIP \
-    --set ingress.enabled=true \
-    --set ingress.annotations."ingress\.kubernetes\.io/ssl-redirect"="false" \
-    --set ingress.annotations."traefik\.ingress\.kubernetes\.io/router\.entrypoints"="web" \
-    --set ingress.hosts={grafana.k3s.local} \
-    --timeout=5m
+  --namespace monitoring \
+  --set persistence.enabled=true \
+  --set persistence.storageClassName=local-path \
+  --set persistence.size=1Gi \
+  --set service.type=ClusterIP \
+  --set ingress.enabled=true \
+  --set ingress.annotations."ingress\.kubernetes\.io/ssl-redirect"="\"false\"" \ # <--- MUDANÇA AQUI!
+  --set grafana.ingress.annotations."traefik\.ingress\.kubernetes\.io/router\.entrypoints"="web" \
+  --set ingress.hosts={grafana.k3s.local} \
+  --timeout=5m
     
     Observação: Você precisará configurar manualmente o Prometheus como fonte de dados no Grafana após a instalação, e alguns dashboards podem não funcionar sem o kube-state-metrics e node-exporter.
     Atualizar o Hardware:

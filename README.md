@@ -8,6 +8,7 @@ Este repositório contém tutoriais, configurações e exemplos para configurar 
 k3s/
 ├── init/           # Configuração inicial do k3s e Dashboard
 ├── postgres/       # PostgreSQL com pgbench para testes de performance
+├── Prometheus/     # Monitoramento com Prometheus e Grafana
 └── README.md       # Este arquivo
 ```
 
@@ -30,6 +31,11 @@ k3s/
 - **💾 postgres-pvc.yaml** - PersistentVolumeClaim para armazenamento persistente
 - **⚡ pgbench-pod.yaml** - Pod para execução de benchmarks com pgbench
 
+### 3. Monitoramento com Prometheus e Grafana
+📂 **Pasta:** `Prometheus/`
+
+- **📊 Monitorament.md** - Tutorial completo para configurar monitoramento com Prometheus e Grafana via Helm
+
 ## 🛠️ Pré-requisitos
 
 - **Hardware:** Raspberry Pi (3, 4, 5, ou Zero 2 W) com 512MB+ de RAM ou qualquer máquina Linux
@@ -48,6 +54,12 @@ k3s/
 1. **Deploy PostgreSQL:** Use os manifests em `postgres/` para implantar uma instância PostgreSQL
 2. **Testes de benchmark:** Execute pgbench para avaliar performance do banco de dados
 3. **Armazenamento persistente:** Os dados persistem entre reinicializações dos pods
+
+### Monitoramento e Observabilidade
+1. **Stack de monitoramento:** Configure Prometheus e Grafana com kube-prometheus-stack
+2. **Dashboards pré-configurados:** Monitore cluster, nós, pods e recursos
+3. **Acesso via Ingress:** Grafana exposto via Traefik com URL personalizada
+4. **Persistência de dados:** Métricas e configurações persistem entre reinicializações
 
 ## 📋 Comandos Principais
 
@@ -88,6 +100,56 @@ kubectl exec -it pgbench-client -- pgbench --host=postgres-service --port=5432 -
 kubectl exec -it pgbench-client -- pgbench --host=postgres-service --port=5432 --username=pgbench_user --time=60 --client=4 --jobs=2 pgbench_db
 ```
 
+### Prometheus + Grafana
+```bash
+# Adicionar repositórios Helm
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+
+# Instalar kube-prometheus-stack (versão completa)
+helm install prometheus prometheus-community/kube-prometheus-stack \
+  --namespace monitoring --create-namespace \
+  --set grafana.ingress.enabled=true \
+  --set grafana.ingress.hosts={grafana.k3s.local} \
+  --set grafana.ingress.annotations."ingress\.kubernetes\.io/ssl-redirect"="false" \
+  --set grafana.ingress.annotations."traefik\.ingress\.kubernetes\.io/router\.entrypoints"="web" \
+  --set grafana.persistence.enabled=true \
+  --set grafana.persistence.storageClassName=local-path \
+  --set grafana.persistence.size=1Gi \
+  --timeout=10m
+
+# Obter senha do Grafana
+kubectl get secret -n monitoring prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 --decode
+
+# Verificar pods de monitoramento
+kubectl get pods -n monitoring
+```
+
+#### Alternativa para Raspberry Pi 3 (recursos limitados)
+```bash
+# Prometheus standalone (mais leve)
+helm install prometheus-server prometheus-community/prometheus \
+  --namespace monitoring --create-namespace \
+  --set persistence.enabled=true \
+  --set persistence.storageClassName=local-path \
+  --set persistence.size=1Gi \
+  --timeout=5m
+
+# Grafana standalone
+helm install grafana grafana/grafana \
+  --namespace monitoring \
+  --set persistence.enabled=true \
+  --set persistence.storageClassName=local-path \
+  --set persistence.size=1Gi \
+  --set service.type=ClusterIP \
+  --set ingress.enabled=true \
+  --set ingress.annotations."ingress\.kubernetes\.io/ssl-redirect"="\"false\"" \ # <--- MUDANÇA AQUI!
+  --set grafana.ingress.annotations."traefik\.ingress\.kubernetes\.io/router\.entrypoints"="web" \
+  --set ingress.hosts={grafana.k3s.local} \
+  --timeout=5m
+```
+
 ## 🔧 Configurações Importantes
 
 ### Para Raspberry Pi
@@ -96,10 +158,16 @@ kubectl exec -it pgbench-client -- pgbench --host=postgres-service --port=5432 -
   cgroup_enable=cpuset cgroup_enable=memory cgroup_memory=1
   ```
 - **Recursos limitados:** Monitore uso de RAM e CPU durante operação
+- **Recomendação:** Para monitoramento completo, prefira Raspberry Pi 4 com 4GB+ RAM
 
 ### Armazenamento
 - **StorageClass padrão:** k3s usa `local-path` para armazenamento persistente
 - **Localização dos dados:** `/var/lib/rancher/k3s/storage`
+
+### Acesso ao Grafana
+- **Configure hosts:** Adicione `[IP_DO_PI] grafana.k3s.local` ao arquivo `/etc/hosts`
+- **URL de acesso:** `http://grafana.k3s.local`
+- **Usuário padrão:** `admin`
 
 ## 🧹 Limpeza
 
@@ -109,6 +177,16 @@ kubectl delete -f postgres/pgbench-pod.yaml
 kubectl delete -f postgres/postgres-deployment.yaml
 kubectl delete -f postgres/postgres-service.yaml
 kubectl delete -f postgres/postgres-pvc.yaml
+```
+
+### Remover stack de monitoramento
+```bash
+# Desinstalar Prometheus e Grafana
+helm uninstall prometheus -n monitoring
+helm uninstall grafana -n monitoring  # Se instalado separadamente
+
+# Remover namespace (opcional)
+kubectl delete namespace monitoring
 ```
 
 ### Desinstalar k3s
@@ -123,6 +201,9 @@ sudo reboot
 - [Kubernetes Dashboard](https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/)
 - [PostgreSQL no Kubernetes](https://kubernetes.io/docs/tutorials/stateful-application/postgresql/)
 - [pgbench Documentation](https://www.postgresql.org/docs/current/pgbench.html)
+- [Prometheus Documentation](https://prometheus.io/docs/)
+- [Grafana Documentation](https://grafana.com/docs/)
+- [Helm Charts](https://helm.sh/docs/)
 
 ## 🚨 Notas de Segurança
 
