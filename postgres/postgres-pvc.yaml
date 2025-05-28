@@ -1,0 +1,14 @@
+# postgres-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data-pvc
+  labels:
+    app: postgres
+spec:
+  accessModes:
+    - ReadWriteOnce # O PVC pode ser montado como leitura/escrita por um único nó
+  resources:
+    requests:
+      storage: 5Gi # Solicita 5 GB de armazenamento (ajuste conforme a necessidade do seu Pi)
+  storageClassName: local-path # Usa o StorageClass padrão do k3s

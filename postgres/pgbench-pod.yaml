@@ -1,0 +1,16 @@
+# pgbench-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pgbench-client
+  labels:
+    app: pgbench
+spec:
+  containers:
+    - name: pgbench
+      image: postgres:15 # A imagem do PostgreSQL geralmente já inclui o pgbench
+      command: ["/bin/bash", "-c", "sleep infinity"] # Mantém o container rodando para que possamos executar comandos
+      env:
+        - name: PGPASSWORD
+          value: mysecretpassword # Senha para o pgbench se conectar
+  restartPolicy: Never # Não reinicia o pod automaticamente após a conclusão (se usássemos um comando direto)

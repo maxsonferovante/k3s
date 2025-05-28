@@ -1,0 +1,13 @@
+# postgres-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+spec:
+  selector:
+    app: postgres
+  ports:
+    - protocol: TCP
+      port: 5432 # Porta que o serviço expõe
+      targetPort: 5432 # Porta que o container PostgreSQL escuta
+  type: ClusterIP # Apenas acessível dentro do cluster

@@ -1,0 +1,36 @@
+# postgres-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15 # Versão estável do PostgreSQL
+          env:
+            - name: POSTGRES_DB
+              value: pgbench_db # Nome do banco de dados para pgbench
+            - name: POSTGRES_USER
+              value: pgbench_user # Usuário para pgbench
+            - name: POSTGRES_PASSWORD
+              value: mysecretpassword # Senha do usuário (ATENÇÃO: Não use senhas em texto puro em produção!)
+          ports:
+            - containerPort: 5432 # Porta padrão do PostgreSQL
+          volumeMounts:
+            - name: postgres-persistent-storage
+              mountPath: /var/lib/postgresql/data # Onde o PostgreSQL armazena os dados
+      volumes:
+        - name: postgres-persistent-storage
+          persistentVolumeClaim:
+            claimName: postgres-data-pvc # Referencia o PVC criado anteriormente
